@@ -13,13 +13,17 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Repository;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static com.karlos.securecapita.enumeration.RoleType.ROLE_USER;
+import static com.karlos.securecapita.enumeration.VerificationType.ACCOUNT;
 import static com.karlos.securecapita.query.UserQuery.*;
 import static java.util.Objects.requireNonNull;
 
@@ -30,10 +34,12 @@ public class UserRepositoryImpl implements UserRepository<User> {
 
     private final NamedParameterJdbcTemplate jdbc;
     private final RoleRepository<Role> roleRepository;
+    private final BCryptPasswordEncoder encoder;
 
-    public UserRepositoryImpl(NamedParameterJdbcTemplate jdbc, RoleRepository<Role> roleRepository) {
+    public UserRepositoryImpl(NamedParameterJdbcTemplate jdbc, RoleRepository<Role> roleRepository, BCryptPasswordEncoder encoder, BCryptPasswordEncoder encoder1) {
         this.jdbc = jdbc;
         this.roleRepository = roleRepository;
+        this.encoder = encoder;
     }
 
     @Override
@@ -49,6 +55,7 @@ public class UserRepositoryImpl implements UserRepository<User> {
             //Add role to the user
             roleRepository.addRoleToUser(user.getId(), ROLE_USER.name());
             //Send verification URL
+            String verificationUrl = getVerificationUrl(UUID.randomUUID().toString(), ACCOUNT.getType());
             //Save URL in verification table
             //Send email to user with verification URL
             //Return the newly created user
@@ -90,6 +97,10 @@ public class UserRepositoryImpl implements UserRepository<User> {
                 .addValue("first_name", user.getFirstName())
                 .addValue("last_name", user.getLastName())
                 .addValue("email", user.getEmail().trim().toLowerCase())
-                .addValue("password", user.getPassword());
+                .addValue("password", encoder.encode(user.getPassword()));
+    }
+
+    private String getVerificationUrl(String key, String type) {
+        return ServletUriComponentsBuilder.fromCurrentContextPath().path("/user/verify" + type + "/" + key).toUriString();
     }
 }
