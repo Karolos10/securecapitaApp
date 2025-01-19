@@ -1,6 +1,6 @@
 CREATE SCHEMA IF NOT EXISTS securecapita;
 
-SET TIME_ZONE = '-4:00';
+SET NAMES 'UTF8MB4';
 
 USE securecapita;
 
