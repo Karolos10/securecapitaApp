@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static com.karlos.securecapita.enumeration.RoleType.ROLE_USER;
+import static com.karlos.securecapita.enumeration.RoleType.*;
 import static com.karlos.securecapita.enumeration.VerificationType.ACCOUNT;
 import static com.karlos.securecapita.query.UserQuery.*;
 import static java.util.Objects.requireNonNull;
@@ -57,6 +57,7 @@ public class UserRepositoryImpl implements UserRepository<User> {
             //Send verification URL
             String verificationUrl = getVerificationUrl(UUID.randomUUID().toString(), ACCOUNT.getType());
             //Save URL in verification table
+            jdbc.update(INSERT_ACCOUNT_VERIFICATION_URL_QUERY, Map.of("user_id", user.getId(), "url", verificationUrl));
             //Send email to user with verification URL
             //Return the newly created user
             //If any errors, throw exception with proper message
