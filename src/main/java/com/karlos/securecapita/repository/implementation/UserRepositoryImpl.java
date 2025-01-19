@@ -1,27 +1,39 @@
 package com.karlos.securecapita.repository.implementation;
 
+import com.karlos.securecapita.domain.Role;
 import com.karlos.securecapita.domain.User;
 import com.karlos.securecapita.exception.ApiException;
+import com.karlos.securecapita.repository.RoleRepository;
 import com.karlos.securecapita.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import static com.karlos.securecapita.enumeration.RoleType.ROLE_USER;
+import static com.karlos.securecapita.query.UserQuery.*;
+import static java.util.Objects.requireNonNull;
+
 @Repository
 @RequiredArgsConstructor
 @Slf4j
 public class UserRepositoryImpl implements UserRepository<User> {
-    public final NamedParameterJdbcTemplate jdbc;
 
-    private static final String COUNT_USER_EMAIL_QUERY = "SELECT COUNT(*) FROM users WHERE email = :email";
+    private final NamedParameterJdbcTemplate jdbc;
+    private final RoleRepository<Role> roleRepository;
 
-    public UserRepositoryImpl(NamedParameterJdbcTemplate jdbc) {
+    public UserRepositoryImpl(NamedParameterJdbcTemplate jdbc, RoleRepository<Role> roleRepository) {
         this.jdbc = jdbc;
+        this.roleRepository = roleRepository;
     }
 
     @Override
@@ -29,12 +41,23 @@ public class UserRepositoryImpl implements UserRepository<User> {
         //Check the email is unique
         if(getEmailCount(user.getEmail().trim().toLowerCase()) > 0) throw new ApiException("Email already in use. Please use another email address");
         //Save new user
-        //Add role to the user
-        //Send verification URL
-        //Save URL in verification table
-        //Send email to user with verification URL
-        //Return the newly created user
-        //If any errors, throw exception with proper message
+        try {
+            KeyHolder holder = new GeneratedKeyHolder();
+            SqlParameterSource parameters = getSqlParameterSource(user);
+            jdbc.update(INSERT_USER_QUERY, parameters, holder);
+            user.setId(requireNonNull(holder.getKey()).longValue());
+            //Add role to the user
+            roleRepository.addRoleToUser(user.getId(), ROLE_USER.name());
+            //Send verification URL
+            //Save URL in verification table
+            //Send email to user with verification URL
+            //Return the newly created user
+            //If any errors, throw exception with proper message
+        } catch (EmptyResultDataAccessException exception){
+
+        } catch (Exception exception){
+
+        }
         return null;
     }
 
@@ -60,5 +83,13 @@ public class UserRepositoryImpl implements UserRepository<User> {
 
     private Integer getEmailCount(String email) {
         return jdbc.queryForObject(COUNT_USER_EMAIL_QUERY, Map.of("email", email), Integer.class);
+    }
+
+    private SqlParameterSource getSqlParameterSource(User user) {
+        return new MapSqlParameterSource()
+                .addValue("first_name", user.getFirstName())
+                .addValue("last_name", user.getLastName())
+                .addValue("email", user.getEmail().trim().toLowerCase())
+                .addValue("password", user.getPassword());
     }
 }
