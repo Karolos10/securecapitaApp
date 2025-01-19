@@ -53,4 +53,33 @@ public class Role {
     public void setPermission(String permission) {
         this.permission = permission;
     }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private Long id;
+        private String name;
+        private String permission;
+
+        public Builder id(Long id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder name(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public Builder permission(String permission) {
+            this.permission = permission;
+            return this;
+        }
+
+        public Role build() {
+            return new Role(id, name, permission);
+        }
+    }
 }
